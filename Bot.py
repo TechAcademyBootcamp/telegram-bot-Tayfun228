@@ -1,24 +1,21 @@
 import requests as r
 from bs4 import BeautifulSoup
-import telegram 
+import telegram
 import random
-
-
-
-
-
-
 
 
 
 class telegramBot():
     index=None
     search=False
+    oyret=False
+    oyret2=False
+    stored=""
     def main(self):
         self.token = '1120109536:AAEFexLLxffdLNTeOSBGM89WsZm0Ytabvk4'
         bot = telegram.Bot(self.token)
         while True:
-            telegramBot.echo(bot)            
+            telegramBot.echo(bot)
 
     def echo(bot):
         indexx=telegramBot.index
@@ -26,23 +23,33 @@ class telegramBot():
         for update in bot.get_updates(offset=indexx,timeout=100):
                 telegramBot.index=update.update_id+1
                 if telegramBot.search:
-                    text=r.get(f"https://www.google.com/search?q={update.message.text}").text
+                    USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:65.0) Gecko/20100101 Firefox/65.0"
+                    headers = {"user-agent" : USER_AGENT}
+                    text=r.get(f"https://www.google.com/search?q={update.message.text}",headers=headers).text
                     soup=BeautifulSoup(text,"html.parser")
                     news=soup.findAll("div",{"class":"g"})
-                    print(news)
-                    for i in news:
-                        print(i)
-
-
-                    # results=r.get("https://www.google.com/search?q="+update.message.text).text
-                    # soup=BeautifulSoup(results,"html.parser")
-                    # results=soup.findAll("h3")
-                    print(news)
+                    try:
+                        for i in news:
+                            # print(i)
+                            href=i.find("a")["href"]
+                            print(href)
+                            name=i.find("h3",{"class":"LC20lb DKV0Md"}).text
+                            print(name)
+                            update.message.reply_text(f"{name}\n{href}")
+                    except:
+                        pass
+                        
                     telegramBot.search=False
                     # print("YOU DID IT")
+                elif "weather" in update.message.text:
+                    page=r.get("https://api.openweathermap.org/data/2.5/weather?q=Baku&appid=fc5c619a3e41cdde434f955f7502ed48").json()
+                    temp=int(page["main"]["temp"])-273
+                    update.message.reply_text(f"BAKU  {temp} C")
                 elif "google" in update.message.text:
                     telegramBot.search=True
                     # print("YES")
+
+                # /////////////////////////////////////////////////////////////////////////////////////////   X E B E R L E R
                 elif telegramBot.levenshtein(update.message.text,"xeberler")<=2:
                     print(update.message.text)
                     text=r.get("https://oxu.az").text
@@ -52,14 +59,34 @@ class telegramBot():
                         name=i.find("div",{"class":"title"}).text
                         returned=f'{name}    LINK - https://oxu.az{i["href"]}'
                         update.message.reply_text(returned)
+                # /////////////////////////////////////////////////////////////////////////////////////////   V A L Y U T A
                 elif telegramBot.levenshtein(update.message.text,"valyuta")<=2:
                     text=r.get("https://api.exchangeratesapi.io/latest").json()
                     datas=text["rates"]
                     for i in datas:
                         update.message.reply_text(f'{i} : {datas[i]}')
+
+                # /////////////////////////////////////////////////////////////////////////////////////////   O Y R E T
+                elif telegramBot.oyret2:
+                    newM=update.message.text
+                    with open("text.txt","r+") as t:
+                        t.seek(0)
+                        txt=t.read()
+                        t.write(f"\n{telegramBot.stored}:{newM}::")
+                        t.seek(0)
+
+                    telegramBot.oyret2=False
+                elif telegramBot.oyret:
+                    if "he" in update.message.text:
+                        telegramBot.oyret2=True
+
+                    telegramBot.oyret=False
+                    
                 else:
                     answer=telegramBot.q_answer(update.message.text)
                     update.message.reply_text(answer)
+                    telegramBot.stored=update.message.text
+                
 
     def q_answer(asked):
         print("ISLEDI")
@@ -90,7 +117,8 @@ class telegramBot():
                     else:
                         return(answer+", "+ans)
                 else:
-                    return("OYRET")    
+                    telegramBot.oyret=True
+                    return("Öyrətmək istəyirsən? he ya yox")    
 
 
     
